@@ -12,9 +12,8 @@ const blogIdValidation = body("blogId")
     const findBlogWithId = blogsRepository.findBlog(blogId);
     if (!findBlogWithId) {
       throw new Error("blog with this id does not exist in the DB");
-    } else {
-      return true;
     }
+    return true;
   })
   .withMessage("Blog with this id does not exist in the DB");
 const titleValidation = body("title")
