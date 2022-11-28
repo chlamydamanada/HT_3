@@ -15,7 +15,8 @@ const blogIdValidation = body("blogId")
     } else {
       return true;
     }
-  });
+  })
+  .withMessage("Blog with this id does not exist in the DB");
 const titleValidation = body("title")
   .isString()
   .trim()
