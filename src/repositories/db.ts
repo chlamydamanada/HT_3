@@ -2,8 +2,8 @@ import { MongoClient } from "mongodb";
 import * as dotenv from "dotenv";
 dotenv.config();
 
-const mongoUrl = process.env.MONGO_URL;
-//"mongodb+srv://admin:12345@cluster0.dzu1h8j.mongodb.net/?retryWrites=true&w=majority";
+const mongoUrl =
+  "mongodb+srv://admin:12345@cluster0.dzu1h8j.mongodb.net/?retryWrites=true&w=majority";
 //process.env.MONGO_URL;
 console.log("url:", mongoUrl);
 if (!mongoUrl) {
