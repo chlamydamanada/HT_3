@@ -8,14 +8,13 @@ export const postsRouter = Router();
 
 const blogIdValidation = body("blogId")
   .isString()
-  .custom((blogId) => {
-    const findBlogWithId = blogsRepository.findBlog(blogId);
+  .custom(async (blogId) => {
+    const findBlogWithId = await blogsRepository.findBlog(blogId);
     if (!findBlogWithId) {
-      throw new Error("blog with this id does not exist in the DB");
+      throw new Error("Blog with this id does not exist in the DB");
     }
     return true;
-  })
-  .withMessage("Blog with this id does not exist in the DB");
+  });
 const titleValidation = body("title")
   .isString()
   .trim()
