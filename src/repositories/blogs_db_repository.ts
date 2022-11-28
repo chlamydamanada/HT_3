@@ -2,12 +2,14 @@ import { blogsCollection } from "./db";
 
 export const blogsRepository = {
   async findBlogs() {
-    return await blogsCollection.find({}, { projection: { _id: 0 } }).toArray();
+    return await blogsCollection
+      .find({}, { projection: { _id: false } })
+      .toArray();
   },
   async findBlog(id: string) {
     let blog = await blogsCollection.findOne(
       { id: id },
-      { projection: { _id: 0 } }
+      { projection: { _id: false } }
     );
     return blog;
   },

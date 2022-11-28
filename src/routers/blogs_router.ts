@@ -99,6 +99,7 @@ blogsRouter.post(
       req.body.description,
       req.body.websiteUrl
     );
+    delete newBlog._id;
     res.status(201).send(newBlog);
   }
 );
@@ -120,6 +121,7 @@ blogsRouter.put(
         req.body.description,
         req.body.websiteUrl
       );
+
       res.sendStatus(204);
     }
   }

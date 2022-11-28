@@ -2,10 +2,15 @@ import { postsCollection } from "./db";
 
 export const postsRepository = {
   async findPosts() {
-    return await postsCollection.find({}).toArray();
+    return await postsCollection
+      .find({}, { projection: { _id: false } })
+      .toArray();
   },
   async findPost(id: string) {
-    let post = await postsCollection.findOne({ id: id });
+    let post = await postsCollection.findOne(
+      { id: id },
+      { projection: { _id: false } }
+    );
     return post;
   },
   async deletePost(id: string) {

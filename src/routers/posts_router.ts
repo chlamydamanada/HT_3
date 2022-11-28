@@ -98,6 +98,7 @@ postsRouter.post(
         req.body.blogId,
         getBlog.name
       );
+      delete newPost._id;
       res.status(201).send(newPost);
     }
   }
