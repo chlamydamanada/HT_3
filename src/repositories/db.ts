@@ -1,27 +1,29 @@
-import { MongoClient } from "mongodb";
+import { MongoClient, ObjectId } from "mongodb";
 import * as dotenv from "dotenv";
 dotenv.config();
 
-const mongoUrl =
-  "mongodb+srv://admin:12345@cluster0.dzu1h8j.mongodb.net/?retryWrites=true&w=majority";
-//process.env.MONGO_URL;
-console.log("url:", mongoUrl);
-if (!mongoUrl) {
-  throw new Error("mongoUrl doesn't found");
-}
+const mongoUrl: any = process.env.MONGO_URL;
 const client = new MongoClient(mongoUrl);
-
-const myDb = client.db("ht");
-export const blogsCollection = myDb.collection("blogs");
-export const postsCollection = myDb.collection("posts");
 
 export async function runDb() {
   try {
     await client.connect();
     await client.db("ht").command({ ping: 1 });
     console.log("Connected successfully to mongo server");
-  } catch {
-    console.log("Can't connect to mongo server");
+  } catch (error) {
+    console.log("Can't connect to mongo server", error);
     await client.close();
   }
 }
+
+export type BlogDbType = {
+  //_id: ObjectId,
+  websiteUrl: string;
+  description: string;
+  name: string;
+  createdAt: string;
+};
+
+const myDb = client.db(process.env.DBNAME);
+export const blogsCollection = myDb.collection<BlogDbType>("blogs");
+export const postsCollection = myDb.collection("posts");

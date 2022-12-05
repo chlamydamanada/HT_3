@@ -1,36 +1,37 @@
 import { NextFunction, Request, Response, Router } from "express";
-import { postsRepository } from "../repositories/posts_db_repository";
 import { body, ValidationError, validationResult } from "express-validator";
-import { basAuthMiddleware } from "./blogs_router";
-import { blogsRepository } from "../repositories/blogs_db_repository";
+import { postsService } from "../domain/posts_service";
+import { postsQwRepository } from "../repositories/posts_qwery_repo";
+import { blogsQwRepository } from "../repositories/blogs_qwery_repo";
+import { baseAuthMiddleware } from "../middlewares/baseAuthorization.middleware";
 
 export const postsRouter = Router();
 
-const blogIdValidation = body("blogId")
+export const blogIdValidation = body("blogId")
   .isString()
   .custom(async (blogId) => {
-    const findBlogWithId = await blogsRepository.findBlog(blogId);
+    const findBlogWithId = await blogsQwRepository.findBlog(blogId);
     if (!findBlogWithId) {
       throw new Error("Blog with this id does not exist in the DB");
     }
     return true;
   });
-const titleValidation = body("title")
+export const titleValidation = body("title")
   .isString()
   .trim()
   .isLength({ min: 1, max: 30 })
   .withMessage("title is not correct");
-const shortDesValidation = body("shortDescription")
+export const shortDesValidation = body("shortDescription")
   .isString()
   .trim()
   .isLength({ min: 1, max: 100 })
   .withMessage("shortDescription is not correct");
-const contentValidation = body("content")
+export const contentValidation = body("content")
   .isString()
   .trim()
   .isLength({ min: 1, max: 1000 })
   .withMessage("content is not correct");
-const inputValMiddleware = (
+export const inputValMiddleware = (
   req: Request,
   res: Response,
   next: NextFunction
@@ -55,11 +56,16 @@ const inputValMiddleware = (
 };
 
 postsRouter.get("/", async (req: Request, res: Response) => {
-  const allPosts = await postsRepository.findPosts();
-  res.status(200).send(allPosts);
+  const posts = await postsQwRepository.findPosts(
+    req.query.pageNumber,
+    req.query.pageSize,
+    req.query.sortBy,
+    req.query.sortDirection
+  );
+  res.status(200).send(posts);
 });
-postsRouter.get("/:id", async (req: Request, res: Response) => {
-  let post = await postsRepository.findPost(req.params.id);
+postsRouter.get("/:id", async (req: Request<{ id: string }>, res: Response) => {
+  let post = await postsQwRepository.findPost(req.params.id);
   if (post) {
     res.status(200).send(post);
   } else {
@@ -68,54 +74,52 @@ postsRouter.get("/:id", async (req: Request, res: Response) => {
 });
 postsRouter.delete(
   "/:id",
-  basAuthMiddleware,
-  async (req: Request, res: Response) => {
-    let isPost = await postsRepository.findPost(req.params.id);
+  baseAuthMiddleware,
+  async (req: Request<{ id: string }>, res: Response) => {
+    let isPost = await postsQwRepository.findPost(req.params.id);
     if (!isPost) {
       res.sendStatus(404);
-    } else {
-      let isDel = await postsRepository.deletePost(req.params.id);
-      res.sendStatus(204);
     }
+    let isDel = await postsService.deletePost(req.params.id);
+    res.sendStatus(204);
   }
 );
 postsRouter.post(
   "/",
-  basAuthMiddleware,
+  baseAuthMiddleware,
   blogIdValidation,
   titleValidation,
   shortDesValidation,
   contentValidation,
   inputValMiddleware,
   async (req: Request, res: Response) => {
-    const getBlog = await blogsRepository.findBlog(req.body.blogId);
+    const getBlog = await blogsQwRepository.findBlog(req.body.blogId);
     if (getBlog) {
-      const newPost = await postsRepository.createPost(
+      const newPost = await postsService.createPost(
         req.body.title,
         req.body.shortDescription,
         req.body.content,
         req.body.blogId,
         getBlog.name
       );
-      delete newPost._id;
       res.status(201).send(newPost);
     }
   }
 );
 postsRouter.put(
   "/:id",
-  basAuthMiddleware,
+  baseAuthMiddleware,
   blogIdValidation,
   titleValidation,
   shortDesValidation,
   contentValidation,
   inputValMiddleware,
-  async (req: Request, res: Response) => {
-    const isPost = await postsRepository.findPost(req.params.id);
+  async (req: Request<{ id: string }>, res: Response) => {
+    const isPost = await postsQwRepository.findPost(req.params.id);
     if (!isPost) {
       res.sendStatus(404);
     } else {
-      const isUpD = await postsRepository.updatePost(
+      const isUpD = await postsService.updatePost(
         req.params.id,
         req.body.title,
         req.body.shortDescription,

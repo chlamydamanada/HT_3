@@ -4,11 +4,12 @@ import { postsRouter } from "./routers/posts_router";
 import { allDataRouter } from "./routers/all_data_router";
 import { parserMiddleware } from "./parserMiddleware";
 import { runDb } from "./repositories/db";
+import bodyParser from "body-parser";
 
 const app = express();
 const port = process.env.PORT || 5000;
 
-app.use(parserMiddleware);
+app.use(bodyParser.json());
 app.use("/blogs", blogsRouter);
 app.use("/posts", postsRouter);
 app.use("/testing/all-data", allDataRouter);

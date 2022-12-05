@@ -1,25 +1,23 @@
 import { NextFunction, Request, Response, Router } from "express";
-import { blogsRepository } from "../repositories/blogs_db_repository";
-import { body, validationResult, ValidationError } from "express-validator";
+import {
+  body,
+  validationResult,
+  ValidationError,
+  query,
+} from "express-validator";
+import { blogsService } from "../domain/blogs_service";
+import {
+  blogIdValidation,
+  contentValidation,
+  shortDesValidation,
+  titleValidation,
+} from "./posts_router";
+import { blogsQwRepository } from "../repositories/blogs_qwery_repo";
+import { postsService } from "../domain/posts_service";
+import { RequestWhithParams } from "../models/request_types";
+import { baseAuthMiddleware } from "../middlewares/baseAuthorization.middleware";
 
 export const blogsRouter = Router();
-
-export const basAuthMiddleware = (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  //let login = "admin";
-  // let pass = "qwerty";
-  // let b64 = btoa(`${login}:${pass}`);
-  // let result = `${'Basic '}${b64}`;
-  const log = "Basic YWRtaW46cXdlcnR5";
-  if (req.headers.authorization !== log) {
-    res.sendStatus(401);
-  } else {
-    next();
-  }
-};
 
 const nameValidation = body("name")
   .isString()
@@ -62,60 +60,88 @@ const inputValMiddleware = (
 };
 
 blogsRouter.get("/", async (req: Request, res: Response) => {
-  const allBlogs = await blogsRepository.findBlogs();
-  res.status(200).send(allBlogs);
+  const blogs = await blogsQwRepository.findBlogs(
+    req.query.searchNameTerm,
+    req.query.pageNumber,
+    req.query.pageSize,
+    req.query.sortBy,
+    req.query.sortDirection
+  );
+  res.status(200).send(blogs);
 });
-blogsRouter.get("/:id", async (req: Request, res: Response) => {
-  let blog = await blogsRepository.findBlog(req.params.id);
-  if (blog) {
-    res.status(200).send(blog);
-  } else {
-    res.send(404);
+blogsRouter.get("/:id", async (req: Request<{ id: string }>, res: Response) => {
+  let blog = await blogsQwRepository.findBlog(req.params.id);
+  if (!blog) {
+    res.sendStatus(404);
   }
+  res.status(200).send(blog);
 });
+
 blogsRouter.delete(
   "/:id",
-  basAuthMiddleware,
-  async (req: Request, res: Response) => {
-    let isBlog = await blogsRepository.findBlog(req.params.id);
+  baseAuthMiddleware,
+  async (req: RequestWhithParams<{ id: string }>, res: Response) => {
+    let isBlog = await blogsQwRepository.findBlog(req.params.id);
     if (!isBlog) {
       res.sendStatus(404);
     } else {
-      let isDel = await blogsRepository.deleteBlog(req.params.id);
+      let isDel = await blogsService.deleteBlog(req.params.id);
       res.sendStatus(204);
     }
   }
 );
 blogsRouter.post(
   "/",
-  basAuthMiddleware,
+  baseAuthMiddleware,
   nameValidation,
   descriptionValidation,
   websiteValidation,
   inputValMiddleware,
   async (req: Request, res: Response) => {
-    const newBlog = await blogsRepository.createBlog(
+    const newBlog = await blogsService.createBlog(
       req.body.name,
       req.body.description,
       req.body.websiteUrl
     );
-    delete newBlog._id;
+
     res.status(201).send(newBlog);
+  }
+);
+blogsRouter.post(
+  "/:blogId/posts/",
+  baseAuthMiddleware,
+  blogIdValidation,
+  titleValidation,
+  shortDesValidation,
+  contentValidation,
+  inputValMiddleware,
+  async (req: Request<{ blogId: string }, {}>, res: Response) => {
+    const getBlog = await blogsQwRepository.findBlog(req.params.blogId);
+    if (getBlog) {
+      const newPost = await postsService.createPost(
+        req.body.title,
+        req.body.shortDescription,
+        req.body.content,
+        req.params.blogId,
+        getBlog.name
+      );
+      res.status(201).send(newPost);
+    }
   }
 );
 blogsRouter.put(
   "/:id",
-  basAuthMiddleware,
+  baseAuthMiddleware,
   nameValidation,
   descriptionValidation,
   websiteValidation,
   inputValMiddleware,
-  async (req: Request, res: Response) => {
-    let isBlog = await blogsRepository.findBlog(req.params.id);
+  async (req: RequestWhithParams<{ id: string }>, res: Response) => {
+    let isBlog = await blogsQwRepository.findBlog(req.params.id);
     if (!isBlog) {
       res.sendStatus(404);
     } else {
-      const isNewBlog = await blogsRepository.updateBlog(
+      const isNewBlog = await blogsService.updateBlog(
         req.params.id,
         req.body.name,
         req.body.description,
@@ -123,6 +149,25 @@ blogsRouter.put(
       );
 
       res.sendStatus(204);
+    }
+  }
+);
+blogsRouter.get(
+  "/:blogId/posts",
+  blogIdValidation,
+  async (req: Request<{ blogId: string }>, res: Response) => {
+    const getBlog = await blogsQwRepository.findBlog(req.params.blogId);
+    if (!getBlog) {
+      res.sendStatus(404);
+    } else {
+      let postsByBlogId = await blogsQwRepository.findPostsById(
+        req.params.blogId,
+        req.query.pageNumber,
+        req.query.pageSize,
+        req.query.sortBy,
+        req.query.sortDirection
+      );
+      res.status(200).send(postsByBlogId);
     }
   }
 );
